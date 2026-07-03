@@ -283,7 +283,7 @@ async function startServer() {
 
   // Products: Create (Admin)
   app.post("/api/products", requireAdmin, async (req, res) => {
-    const { name, description, price, originalPrice, imageUrl, stock, category, discountBadge } = req.body;
+    const { name, description, price, originalPrice, imageUrl, imageUrls, stock, category, discountBadge } = req.body;
     
     if (!name || price === undefined || stock === undefined) {
       res.status(400).json({ success: false, message: "ກະລຸນາກອກຂໍ້ມູນທີ່ຈຳເປັນໃຫ້ຄົບຖ້ວນ (ຊື່, ລາຄາ, ສະຕັອກ)" });
@@ -298,6 +298,7 @@ async function startServer() {
       price: Number(price),
       originalPrice: originalPrice ? Number(originalPrice) : undefined,
       imageUrl: imageUrl || "https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&q=80&w=600",
+      imageUrls: Array.isArray(imageUrls) ? imageUrls : [],
       stock: Number(stock),
       category: category || "ທົ່ວໄປ",
       discountBadge: discountBadge || ""
@@ -311,7 +312,7 @@ async function startServer() {
   // Products: Edit (Admin)
   app.put("/api/products/:id", requireAdmin, async (req, res) => {
     const { id } = req.params;
-    const { name, description, price, originalPrice, imageUrl, stock, category, discountBadge } = req.body;
+    const { name, description, price, originalPrice, imageUrl, imageUrls, stock, category, discountBadge } = req.body;
 
     const products = await getProducts();
     const index = products.findIndex((p: any) => p.id === id);
@@ -328,6 +329,7 @@ async function startServer() {
       price: price !== undefined ? Number(price) : products[index].price,
       originalPrice: originalPrice !== undefined ? (originalPrice ? Number(originalPrice) : undefined) : products[index].originalPrice,
       imageUrl: imageUrl !== undefined ? imageUrl : products[index].imageUrl,
+      imageUrls: Array.isArray(imageUrls) ? imageUrls : (products[index].imageUrls || []),
       stock: stock !== undefined ? Number(stock) : products[index].stock,
       category: category !== undefined ? category : products[index].category,
       discountBadge: discountBadge !== undefined ? discountBadge : products[index].discountBadge
@@ -485,6 +487,21 @@ async function startServer() {
     await saveOrders(orders);
 
     res.json({ success: true, order: orders[index] });
+  });
+
+  // Orders: Delete (Admin)
+  app.delete("/api/orders/:id", requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    const orders = await getOrders();
+    const filtered = orders.filter((o: any) => o.id !== id);
+
+    if (orders.length === filtered.length) {
+      res.status(404).json({ success: false, message: "ບໍ່ພົບອໍເດີ້ທີ່ຕ້ອງການລົບ" });
+      return;
+    }
+
+    await saveOrders(filtered);
+    res.json({ success: true, message: "ລົບອໍເດີ້ຮຽບຮ້ອຍແລ້ວ" });
   });
 
   // --- Dynamic Settings Routes ---

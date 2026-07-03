@@ -1,6 +1,6 @@
 import React from "react";
 import { Product } from "../types";
-import { X, ShoppingCart, Tag, Check, Package, Layers } from "lucide-react";
+import { X, ShoppingCart, Tag, Check, Package, Layers, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ProductModalProps {
   product: Product | null;
@@ -17,6 +17,12 @@ export default function ProductModal({
 }: ProductModalProps) {
   if (!product) return null;
 
+  const [activeImageIndex, setActiveImageIndex] = React.useState(0);
+
+  React.useEffect(() => {
+    setActiveImageIndex(0);
+  }, [product?.id]);
+
   const hasDiscount = product.originalPrice && product.originalPrice > product.price;
   const isOutOfStock = product.stock <= 0;
   
@@ -24,33 +30,107 @@ export default function ProductModal({
   const savedAmount = hasDiscount ? (product.originalPrice! - product.price) : 0;
   const savedPercent = hasDiscount ? Math.round((savedAmount / product.originalPrice!) * 100) : 0;
 
+  const images = product.imageUrls && product.imageUrls.length > 0 
+    ? product.imageUrls.filter(url => url.trim() !== "") 
+    : [product.imageUrl];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity" id="product-detail-modal">
       <div 
-        className="relative bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col md:flex-row animate-in fade-in-50 zoom-in-95 duration-200 max-h-[90vh] md:max-h-[80vh]"
+        className="relative bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col md:flex-row animate-in fade-in-50 zoom-in-95 duration-200 max-h-[90vh] md:max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/80 hover:bg-white text-slate-500 hover:text-slate-800 shadow-md hover:scale-105 transition-all cursor-pointer"
+          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/80 hover:bg-white text-slate-500 hover:text-slate-800 shadow-md hover:scale-105 transition-all cursor-pointer"
           id="close-detail-modal-btn"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* Product Image Panel */}
-        <div className="md:w-1/2 relative bg-slate-50 aspect-square md:aspect-auto flex items-center justify-center">
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-          {product.discountBadge && (
-            <span className="absolute top-4 left-4 bg-rose-500 text-white text-xs font-bold font-display px-3 py-1 rounded-full shadow-sm">
-              {product.discountBadge}
-            </span>
+        {/* Product Image Panel with Slide Navigation */}
+        <div className="md:w-1/2 flex flex-col bg-slate-50 border-r border-slate-100">
+          <div className="relative aspect-square flex-1 flex items-center justify-center overflow-hidden bg-slate-50">
+            <img
+              src={images[activeImageIndex] || product.imageUrl}
+              alt={product.name}
+              className="w-full h-full object-cover transition-all duration-300 ease-in-out"
+              referrerPolicy="no-referrer"
+              key={activeImageIndex}
+            />
+            {product.discountBadge && (
+              <span className="absolute top-4 left-4 bg-rose-500 text-white text-xs font-bold font-display px-3 py-1 rounded-full shadow-sm z-10">
+                {product.discountBadge}
+              </span>
+            )}
+
+            {/* Slider Navigation Arrows */}
+            {images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-slate-900 shadow-md transition-all hover:scale-105 cursor-pointer z-10"
+                  title="ຮູບກ່ອນໜ້າ"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 hover:bg-white text-slate-700 hover:text-slate-900 shadow-md transition-all hover:scale-105 cursor-pointer z-10"
+                  title="ຮູບຖັດໄປ"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+
+                {/* Dot Indicators */}
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                  {images.map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActiveImageIndex(idx)}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        idx === activeImageIndex ? "w-4 bg-indigo-600" : "w-1.5 bg-indigo-200 hover:bg-indigo-400"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Mini Thumbnail Strip */}
+          {images.length > 1 && (
+            <div className="p-3 bg-white border-t border-slate-100 flex gap-2 overflow-x-auto justify-center max-w-full">
+              {images.map((img, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setActiveImageIndex(idx)}
+                  className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${
+                    idx === activeImageIndex 
+                      ? "border-indigo-600 scale-102 shadow-xs" 
+                      : "border-slate-100 hover:border-slate-300 opacity-70 hover:opacity-100"
+                  }`}
+                >
+                  <img 
+                    src={img} 
+                    alt={`Thumb ${idx}`} 
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </button>
+              ))}
+            </div>
           )}
         </div>
 

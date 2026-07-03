@@ -5,6 +5,7 @@ export interface Product {
   price: number; // Actual selling price
   originalPrice?: number; // Price before discount (optional)
   imageUrl: string;
+  imageUrls?: string[];
   stock: number;
   category: string;
   discountBadge?: string; // e.g., "ຫຼຸດ 20%", "ຂາຍດີ"

@@ -54,6 +54,7 @@ export default function AdminDashboard({
   const [price, setPrice] = useState("");
   const [originalPrice, setOriginalPrice] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([""]);
   const [stock, setStock] = useState("");
   const [category, setCategory] = useState("ທົ່ວໄປ");
   const [discountBadge, setDiscountBadge] = useState("");
@@ -166,6 +167,7 @@ export default function AdminDashboard({
       setPrice(editingProduct.price.toString());
       setOriginalPrice(editingProduct.originalPrice?.toString() || "");
       setImageUrl(editingProduct.imageUrl);
+      setImageUrls(editingProduct.imageUrls && editingProduct.imageUrls.length > 0 ? [...editingProduct.imageUrls] : [editingProduct.imageUrl]);
       setStock(editingProduct.stock.toString());
       setCategory(editingProduct.category);
       setDiscountBadge(editingProduct.discountBadge || "");
@@ -180,6 +182,7 @@ export default function AdminDashboard({
     setPrice("");
     setOriginalPrice("");
     setImageUrl("");
+    setImageUrls([""]);
     setStock("");
     setCategory(categories.length > 0 ? categories[0] : "ທົ່ວໄປ");
     setDiscountBadge("");
@@ -210,12 +213,16 @@ export default function AdminDashboard({
     }
 
     setLoading(true);
+    const cleanImageUrls = imageUrls.filter(url => url.trim() !== "").slice(0, 8);
+    const primaryImageUrl = cleanImageUrls[0] || "https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&q=80&w=600";
+
     const payload = {
       name,
       description,
       price: Number(price),
       originalPrice: originalPrice ? Number(originalPrice) : null,
-      imageUrl: imageUrl || undefined,
+      imageUrl: primaryImageUrl,
+      imageUrls: cleanImageUrls,
       stock: Number(stock),
       category,
       discountBadge
@@ -301,6 +308,31 @@ export default function AdminDashboard({
       }
     } catch (err) {
       showMessage("ເກີດຂໍ້ຜິດພາດໃນການປ່ຽນສະຖານະ", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete Order
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!window.confirm("ທ່ານຕ້ອງການລົບອໍເດີ້ວນີ້ແມ່ນບໍ? (ບໍ່ສາມາດກູ້ຄືນໄດ້)")) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showMessage("ລົບອໍເດີ້ສຳເລັດ!");
+        await onRefreshOrders();
+      } else {
+        showMessage(data.message || "ບໍ່ສາມາດລົບອໍເດີ້ໄດ້", "error");
+      }
+    } catch (err) {
+      showMessage("ເກີດຂໍ້ຜິດພາດໃນການລົບອໍເດີ້", "error");
     } finally {
       setLoading(false);
     }
@@ -930,16 +962,26 @@ export default function AdminDashboard({
                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                         ຈັດການສະຖານະຈັດສົ່ງ
                       </label>
-                      <select
-                        value={order.status}
-                        onChange={(e) => handleUpdateOrderStatus(order.id, order.status, e.target.value)}
-                        className="w-full md:w-48 px-3 py-2 border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-xs rounded-xl bg-white font-semibold text-slate-700 cursor-pointer"
-                      >
-                        <option value="ລໍຖ້າດຳເນີນການ">ລໍຖ້າດຳເນີນການ ⏳</option>
-                        <option value="ກຳລັງຈັດສົ່ງ">ກຳລັງຈັດສົ່ງ 🚚</option>
-                        <option value="ຈັດສົ່ງສຳເລັດ">ຈັດສົ່ງສຳເລັດ ✅</option>
-                        <option value="ຍົກເລີກ">ຍົກເລີກ ❌</option>
-                      </select>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={order.status}
+                          onChange={(e) => handleUpdateOrderStatus(order.id, order.status, e.target.value)}
+                          className="flex-1 md:w-48 px-3 py-2 border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-xs rounded-xl bg-white font-semibold text-slate-700 cursor-pointer"
+                        >
+                          <option value="ລໍຖ້າດຳເນີນການ">ລໍຖ້າດຳເນີນການ ⏳</option>
+                          <option value="ກຳລັງຈັດສົ່ງ">ກຳລັງຈັດສົ່ງ 🚚</option>
+                          <option value="ຈັດສົ່ງສຳເລັດ">ຈັດສົ່ງສຳເລັດ ✅</option>
+                          <option value="ຍົกເລີກ">ຍົກເລີກ ❌</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteOrder(order.id)}
+                          className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl border border-rose-100/50 hover:scale-105 transition-all cursor-pointer"
+                          title="ລົບອໍເດີ້"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1624,20 +1666,66 @@ export default function AdminDashboard({
                 </div>
               </div>
 
-              {/* Product Image URL */}
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1 flex items-center gap-1">
-                  <Image className="w-3.5 h-3.5 text-indigo-500" />
-                  ລິ້ງຮູບພາບ (Image URL)
+              {/* Product Image URLs (Up to 8) */}
+              <div className="space-y-2 border border-slate-100 rounded-2xl p-4 bg-slate-50/40">
+                <label className="block text-xs font-bold text-slate-600 flex items-center justify-between mb-1">
+                  <span className="flex items-center gap-1">
+                    <Image className="w-4 h-4 text-indigo-500" />
+                    ຮູບພາບສິນຄ້າ (ລິ້ງ URL, ສູງສຸດ 8 ຮູບ) *
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-semibold font-mono">
+                    {imageUrls.filter(url => url.trim() !== "").length} / 8 ຮູບ
+                  </span>
                 </label>
-                <input
-                  type="url"
-                  placeholder="ກະລຸນາກອກ URL ຂອງຮູບພາບ"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-xs transition-all"
-                  id="form-product-image"
-                />
+                
+                <div className="space-y-2.5">
+                  {imageUrls.map((url, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="text-xs font-bold font-mono text-slate-400 w-5">
+                        #{idx + 1}
+                      </span>
+                      <input
+                        type="url"
+                        placeholder={`ລິ້ງຮູບພາບທີ ${idx + 1} (e.g. https://images.unsplash.com/...)`}
+                        value={url}
+                        onChange={(e) => {
+                          const newUrls = [...imageUrls];
+                          newUrls[idx] = e.target.value;
+                          setImageUrls(newUrls);
+                        }}
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-xs bg-white transition-all"
+                      />
+                      {imageUrls.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newUrls = imageUrls.filter((_, i) => i !== idx);
+                            setImageUrls(newUrls);
+                          }}
+                          className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-500 transition-colors cursor-pointer"
+                          title="ລົບຮູບພາບນີ້"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {imageUrls.length < 8 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (imageUrls.length < 8) {
+                        setImageUrls([...imageUrls, ""]);
+                      }
+                    }}
+                    className="mt-2 w-full py-2 border border-dashed border-slate-250 hover:border-indigo-500 text-slate-500 hover:text-indigo-600 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer bg-white"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>ເພີ່ມລິ້ງຮູບພາບໃໝ່ ({imageUrls.length}/8)</span>
+                  </button>
+                )}
               </div>
 
               {/* Submit / Cancel buttons */}
