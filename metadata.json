@@ -1,0 +1,6 @@
+{
+  "name": "E-Commerce Shop",
+  "description": "ร้านค้าออนไลน์สำหรับดูสินค้า สั่งซื้อสินค้า และจัดการสินค้าและออเดอร์สำหรับผู้ดูแลระบบ",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

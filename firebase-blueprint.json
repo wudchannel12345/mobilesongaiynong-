@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Product document storing details about a product available in the shop.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "originalPrice": { "type": "number" },
+        "imageUrl": { "type": "string" },
+        "stock": { "type": "number" },
+        "category": { "type": "string" },
+        "discountBadge": { "type": "string" }
+      },
+      "required": ["name", "price", "stock"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order containing purchased items, contact information, shipping, and payment status.",
+      "type": "object",
+      "properties": {
+        "orderNumber": { "type": "string" },
+        "customerName": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "shippingAddress": { "type": "string" },
+        "shippingProvider": { "type": "string" },
+        "items": { "type": "array" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "paymentSlip": { "type": "string" }
+      },
+      "required": ["orderNumber", "customerName", "contactPhone", "shippingAddress", "shippingProvider", "items", "totalAmount", "status", "createdAt", "paymentSlip"]
+    },
+    "Config": {
+      "title": "Config",
+      "description": "Generic document in the config collection, holds varying types of configurations like settings, categories, slides, carriers, payments.",
+      "type": "object",
+      "properties": {
+        "value": { "type": "object" }
+      },
+      "required": ["value"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of products available for purchase."
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of orders placed by customers."
+    },
+    "/config/{configName}": {
+      "schema": "Config",
+      "description": "Store application configurations like sliders, categories, carriers, payments."
+    }
+  }
+}
